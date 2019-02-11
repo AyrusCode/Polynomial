@@ -1,10 +1,3 @@
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
 
 #ifndef lab1_polynomial
 #define lab1_polynomial
@@ -65,6 +58,17 @@ public:
 
 	// File input constructor
 	Polynomial(string fileName) {
+		string s;
+		int sTotal = 0;
+
+		ifstream in;
+		in.open(fileName.c_str());
+
+		while (!in.eof()) {
+			getline(in, s);
+			sTotal++;
+		}
+
 		ifstream poly_stream;
 		
 		poly_stream.open(fileName.c_str());
@@ -81,8 +85,9 @@ public:
 			data[i] = value;
 		}
 
-		try {
-			while (!poly_stream.fail()) {
+		// Dealing with negative coefficients if there are coefficients remaining (ie more coefficients than size specified)
+		if (sTotal != size + 1) {
+			for (int j = 0; j < sTotal - size; j++) {
 				poly_stream >> value;
 				negative_polynomial.push_back(data[0]);
 				for (int i = 0; i < data.size() - 1; i++) {
@@ -90,12 +95,12 @@ public:
 				}
 				data[data.size() - 1] = value;
 			}
+
+		}
+
+		
 			
-		}
-		catch(...){
-			cout << "Doesnt workskdfkaksd";
-			poly_stream.close();
-		}
+
 
 		poly_stream.close();
 	
