@@ -1,303 +1,252 @@
-#include "lab1_polynomial.h"
+#ifndef lab1_polynomial
+#define lab1_polynomial
+#define NOMINMAX
 
+#include <iostream>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+#include <fstream>
+#include <istream>
+#include <ostream>
+#include <cassert>
+#include <algorithm>
+#include <iterator>
+#include <stdio.h>
+#include <filesystem>
+using namespace std;
 
-
-class PolynomialTest {
+class Polynomial {
+	// Using vector implementation of Polynomial class
+	vector<int> data;
+	vector<int> negative_polynomial; // stores least negative exponents first
 
 
 public:
-	//this is pretty sweet ngl
-	//i have no idea are you able to save it?
-	//yes i can
-	//no not at all
-	// yeah it says it ran in the output window
-	bool test_constructors1() {
-		bool constructor1 = true;
-		//test case of positive
-		int i1[] = { 1, 0, 0, 2 };
-		Polynomial p1(i1,4);
+	// Generation of a random Polynomial that can be no bigger than 1001 terms and no smaller than 1 term
+	Polynomial() {
+		
+		data.resize(rand() % 1001);
 
-		constructor1 = constructor1 && p1.data.size() == 4;
-		constructor1 = constructor1 && p1.data[0] == 1;
+		for (int i = 0; i < data.size(); i++) {
+			data[i] = rand() % 1000;
+			bool is_negative = rand() % 2;
 
-		//special case of putting size less than 1;
-		int i3[] = { 1,3,12 };
-		Polynomial p3(i3, -3);
+			if (is_negative) data[i] *= -1;
+		}
 
-		constructor1 = constructor1 && p3.data.size() == 0;
-		return constructor1;
 	}
 
-	bool test_constructors2() {
+	// Parameterized Polynomial Constructor that takes an integer array and array size
+	Polynomial(int A[], int size) {
 
-		//special case with size of 0;
-		int i2[] = { 0, 0, 2, 0, 1 };
-		//test_stuff(i2, 5);
-		Polynomial p2(i2, 0);
+		if ((size < 0 )) {
+			int i1[] = {0};
+			Polynomial(i1, 0);
+		}
 
-		int i1[] = { -4,-5,2,4,2 };
-		Polynomial p1(i1, 5);
+		else {
+			data.resize(size);
+
+			for (int i = 0; i <size; i++) {
+				data[i] = A[i];
+			}
+		}
+		
+	}
+
+	// File input constructor
+	Polynomial(string fileName) {
+		ifstream poly_stream;
+		
+		poly_stream.open(fileName.c_str());
+
+		int size;
+		poly_stream >> size;
+
+		data.resize(size);
+
+		int value = 0;
+
+		for (int i = 0; i < size; i++) {
+			poly_stream >> value;
+			data[i] = value;
+		}
+
+		try {
+			poly_stream >> value;
+			negative_polynomial.push_back(data[0]);
+			for (int i = 0; i < data.size() - 1; i++) {
+				data[i] = data[i + 1];
+			}
+			data[data.size() - 1] = value;
+		}
+		catch(...){
+			poly_stream.close();
+		}
+	
+
+		
+	}
+
+	// Method that returns value at particular index of polynomial
+	int val_at_index(int index) {
+		return data[index];
+	}
+
+	// Method that returns size of polynomial when called
+	int vector_size() {
+		return data.size();
+	}
+
+	// Deconstructor
+	~Polynomial() {
+		data.erase(data.begin(), data.end());
+	}
+
+	// Compares to see if two polynomials are equal
+	bool operator==(const Polynomial& target) {
+		if (data.size() != target.data.size()) return false;
+		for (int i = 0; i < data.size(); ++i) {
+			if (data[i] != target.data[i]) return false;
+		}
 		return true;
 	}
 
+	// Adds two polynomials
+	Polynomial operator+(const Polynomial& target) {
+		int max_size = max(data.size(), target.data.size());
+		int min_size = min(data.size(), target.data.size());
 
-	bool test_random() {
-		Polynomial px;
-		Polynomial py;
-		Polynomial pz;
-		bool not_equal = true;
+		int* array = new int[max_size];
 
-		cout << "Random Polynomial 1: ";
-		px.trunc_print();
+		for (int i = 0; i < max_size; i++) {
+			if (i < min_size)
+				array[i] = data[i] + target.data[i];
+			else if (data.size() > min_size)
+				array[i] = data[i];
+			else
+				array[i] = target.data[i];
+		}
 
-		cout << "\nRandom Polynomial 2: ";
-		py.trunc_print();
+		Polynomial new_poly(array, max_size);
+		return new_poly;
+	}
 
-		cout << "\nRandom Polynomial 3: ";
-		pz.trunc_print();
+	// Subtracts polynomials
+	Polynomial operator-(const Polynomial& target) {
+		int max_size = max(data.size(), target.data.size());
+		int min_size = min(data.size(), target.data.size());
 
-		cout << "\nAre these random? (Y/N) " << endl;
+		int* array = new int[max_size];
 
-		char prompt;
-		cin >> prompt;
+		for (int i = 0; i < max_size; i++) {
+			if (i < min_size) array[i] = data[i] - target.data[i];
+			else if (data.size() > min_size) array[i] = data[i];
+			else array[i] = -1 * target.data[i];
+		}
 
-		not_equal = not_equal && prompt == 'Y';
+		Polynomial new_poly(array, max_size);
+		return new_poly;
+	}
+
+	// Multiplies two polynomials
+	Polynomial operator*(const Polynomial& target) {
+		int new_size = data.size() + target.data.size() - 1;
+
+		int* array = new int[new_size];
+
+		for (int k = 0; k < new_size; k++) array[k] = 0;
+
+		for (int i = 0; i < data.size(); i++)
+		{
+			for (int j = 0; j < target.data.size(); j++)
+			{
+				int power = i + j;
+				array[power] += data[i] * target.data[j];
+			}
+		}
+		Polynomial new_poly(array, new_size);
+		return new_poly;
+	}
+
+	// Derivative method
+	Polynomial derivative() {
+		// Creates an an array of size n-1 where n is the polynomial size
+		int new_size = data.size() - 1;
+		int* array = new int[new_size];
+
+		// If the size is equal to 1, returns a polynomial of size 1 and value 0 (since the derivative of a constant is 0)
+		if (data.size() == 1) {
+			int i1[] = { 0 };
+			Polynomial der_poly(i1, 0);
+			return der_poly;
+		}
 		
-		not_equal = not_equal && !(px.data.size() == py.data.size() && py.data.size() == pz.data.size());
-		not_equal = not_equal && !(pz.data[0] == py.data[0] && px.data[0] == py.data[0]);
+		// Else, computes the derivative using drop-down rule of exponents (x^n => n * x^n-1)
+		else {
+			for (int i = 0; i < new_size; i++) {
+				array[i] = data[i + 1] * (i + 1);
+			}
+			Polynomial der_poly(array, new_size);
+			return der_poly;
+		}
+	}
+
+	// Print method
+	void print() {
+		for (int i = data.size() - 1; i >= 0; i--)
+		{
+			if (data[i] != 0) {
+				if (i != data.size() - 1) {
+					cout << " + ";
+				}
+				if (data[i] >= 0) {
+					cout << data[i] << "x^" << i;
+				}
+				else cout << "(" << data[i] << ")" << "x^" << i;
+			}
+			
+		}
 		
-		return not_equal;
+		cout << endl;
 	}
 
-	bool test_equals() {
-		int i1[] = { 1, 4, 5, 6 };
-		int i2[] = { 1, 4, 5, 6 };
-		int i3[] = { 2, 3, 1};
-		Polynomial p1(i1, 4);
-		Polynomial p2(i2, 4);
-		Polynomial p3(i3, 3);
-		Polynomial p4(p3);
 
-		bool equal = p1 == p2;
-		equal = equal && !(p2 == p3);
-		equal = equal && p3 == p4;
-
-		return equal;
+	// Prints the first 5 terms of the polynomial, used to print and test randomly generated polynomials for "randomness"
+	void trunc_print() {
+		if (data.size() <= 5) print();
+		else {
+			for (int i = data.size() - 1 ; i >= data.size() - 5; i--) {
+				if (data[i] != 0) {
+					if (i != data.size() - 1)
+						cout << " + ";
+					if (data[i] >= 0) {
+						cout << data[i] << "x^" << i;
+					}
+					else cout << "(" << data[i] << ")" << "x^" << i;
+				}
+			}
+		}
 	}
 
-	bool test_add() {
-
-		//adding two polynomials with the same sizes
-		int i1[] = { 1, 0, 0, 2 };
-		Polynomial p1(i1, 4);
-
-		int i2[] = { 2, 1, 1, 1 };
-		Polynomial p2(i2, 4);
-
-
-		Polynomial p3 = p1 + p2;
-		int i4[] = { 3, 1, 1, 3 };
-
-		Polynomial p4(i4, 4);
-
-		//adding two polynomials with different sizes
-		int i5[] = { 1, 3, 1 };
-		Polynomial p5(i5, 3);
-		Polynomial p6 = p5 + p2;
-
-		int i7[] = { 3, 4, 2, 1 };
-		Polynomial p7(i7, 4);
-
-		//adding one polynomial with an empty one
-		int i8[] = { 0 };
-		Polynomial p8(i8, 0);
-		Polynomial p9 = p8 + p3;
-		bool add_valid = p3 == p4 && p7 == p6 && p9 == p3;
-		return add_valid;
-
+	// Custom method to resize a polynomial where all values are zero and size is polynomial size >1 to a single-term zero polynomial
+	void zero_poly() {
+		bool all_zero = true;
+		for (int i = 0; i < data.size(); i++) {
+			if (data[i] != 0)
+				all_zero = false;
+		}
+		if (all_zero) {
+			data.resize(1);
+		}
 	}
+	
+	// Creating friend class that will be able to use methods of Polynomial class (for testing)
+	friend class PolynomialTest;
 
-	bool test_subtract() {
-		//subtracting polynomials of the same size
-		int i1[] = { 1, 0, 0, 2 };
-		Polynomial p1(i1, 4);
-
-		int i2[] = { 2, 1, 1, 1 };
-		Polynomial p2(i2, 4);
-
-		Polynomial p3 = p1 - p2;
-		int i4[] = { -1, -1, -1, 1 };
-		Polynomial p4(i4, 4);
-
-		//subtracting two polynomials with different sizes
-		int i5[] = { 1, 4, 1 };
-		Polynomial p5 = { i5,3 };
-		Polynomial p6 = p5 - p2;
-
-		int i7[] = { -1, 3, 0, -1 };
-		Polynomial p7 = { i7,4 };
-		
-		//subtracting one polynomial with an empty one
-		int i8[] = { 0 };
-		Polynomial p8(i8, 1);
-		Polynomial p9 = p1 - p8;
-
-		bool subtract_valid = p3 == p4 && p7 == p6 && p9 == p1;
-		return subtract_valid;
-	}
-
-	bool test_multiplying() {
-
-		//multipling two polynomials with the same size
-		int i10[] = { 2,4,4 };
-		Polynomial p10(i10, 3);
-
-		int i11[] = { 5,7,2 };
-		Polynomial p11 = Polynomial(i11, 3);
-
-		Polynomial p12 = p10 * p11;
-		int i13[] = { 10,34,52,36,8 };
-		Polynomial p13(i13, 5); 
-		
-
-		//Multiplying polynomials with different sizes
-
-		int i1[] = { 1, 0, 0, 2 };
-		Polynomial p1(i1, 4);
-
-		int i2[] = { 0, 0, 2, 0, 1 };
-		Polynomial p2(i2, 5);
-
-		Polynomial p3 = p1 * p2;
-
-		int i4[] = { 0, 0, 2, 0, 1, 4, 0, 2 };
-		Polynomial p4(i4, 8);
-
-
-		//Multiplying a polynomial with nothing
-		int i5[] = { 0 };
-		Polynomial p5(i5, 1);
-		Polynomial p7 = p5 * p4;
-
-		p7.zero_poly();
-
-		bool multiply_valid = p7 == p5 && p13==p12 && p4==p3;
-		return multiply_valid;
-
-	}
-
-	bool test_print() {
-		int i1[] = { 1, 0, 0, 2 };
-		Polynomial p1(i1, 4);
-
-		//cout << "Output should be '2x^3 + 1x^0'" << endl;
-		return true;
-	}
-
-	bool test_derivative() {
-		//derivative of a constant
-		int i1[] = { 1 };
-		Polynomial p1(i1, 1);
-		p1 = p1.derivative();
-
-		int i2[] = {0};
-		Polynomial p2(i2, 0);
-
-		//Derivative of a polynomial Test 1
-		int i3[] = { 3,5,3 };
-		Polynomial p3(i3, 3);
-		p3=p3.derivative();
-		int i4[] = { 5,6 };
-		Polynomial p4(i4, 2);
-
-		//Derivative of a Polynomial Test 2
-		int i5[] = { 1,4,6,2 };
-		Polynomial p5(i5, 4);
-		p5=p5.derivative();
-
-		int i6[] = { 4,12,6 };
-		Polynomial p6(i6, 3);
-		
-
-		bool derivative_valid = p1 == p2 && p3 == p4 && p5==p6;
-		return derivative_valid;
-	}
-
-	bool test_filereading() {
-		//Test to correctly read a file
-		Polynomial poly1("inputpoly.txt");
-		int i1[] = { 1,4,5 };
-		Polynomial p1(i1, 3);
-
-		//Test 2
-		Polynomial poly2("inputpoly2.txt");
-		int i2[] = { 4,5,3 };
-		Polynomial p2(i2, 3);
-		
-		//Test 3
-		Polynomial poly3("inputpoly3.txt");
-		int i3[] = { 3,5,1,2 };
-		Polynomial p3(i3, 4);
-
-		return poly1==p1 && poly2 == p2 && poly3 == p3;
-	}
-
-	void test_stuff(int A[], int size) {
-		
-		const int s = (sizeof(A)) / sizeof(A[0]);
-		cout << s << endl;
-		cout << size << endl;
-	}
-
-	void run() {
-
-		assert(test_constructors1());
-		cout << "Constructor 1 test passed" << endl;
-
-		//assert(test_random());
-		//cout << "Random constructor test passed" << endl;
-
-
-
-		assert(test_constructors2());
-		//cout << "Special Case: Zero length polynomial --> test passed" << endl;
-
-		//assert(negative_constant_poly());
-		//cout << "Special Case: Negative constants --> test passed\n" << endl;
-
-		assert(test_equals());
-		cout << "Equals operator test passed" << endl;
-
-		assert(test_add());
-		cout << "Addition operator test passed" << endl;
-
-		assert(test_subtract());
-		cout << "Subtraction operator test passed" << endl;
-
-		assert(test_multiplying());
-		cout << "Multiplication operator test passed" << endl;
-
-		assert(test_derivative());
-		cout << "Derivative method test passed" << endl;
-
-		//cout << "Special Case: derivative of a constant test Passed\n" << endl;
-
-		assert(test_filereading());
-		cout << "File reading constructor test passed" << endl;
-
-		//cout << "Print method test:" << endl;
-		assert(test_print());
-		//cout << "Print method test passed" << endl;
-
-
-	}
 };
 
 
-int main()
-{
-	srand(time(0));
-	PolynomialTest polytest;
-	polytest.run();
-	return 0;
-}
+
+#endif 
